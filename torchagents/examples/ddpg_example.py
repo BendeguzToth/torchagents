@@ -1,5 +1,5 @@
 """
-Testing the Deep Q-Learning agent on cart pole.
+Running DDPG on pendulum.
 """
 
 # Standard libraries
@@ -18,7 +18,7 @@ from ddpg import DDPG
 logging.basicConfig(level=logging.INFO)
 
 
-def test_ddpg(agent: DDPG, render: bool = True):
+def run_ddpg(agent: DDPG, render: bool = True):
     env = gym.make("Pendulum-v0")
     draw = env.render if render else lambda: ...
 
@@ -82,7 +82,7 @@ def main():
         verbose=True
     )
 
-    test_ddpg(agent, render=True)
+    run_ddpg(agent, render=True)
 
 
 if __name__ == '__main__':

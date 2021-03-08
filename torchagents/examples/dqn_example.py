@@ -1,5 +1,5 @@
 """
-Testing the Deep Q-Learning agent on cart pole.
+Running the Deep Q-Learning agent on cart pole.
 """
 
 # Standard libraries
@@ -19,7 +19,7 @@ from dqn import DQN
 logging.basicConfig(level=logging.INFO)
 
 
-def test_qlearning(agent: DQN, render: bool = True):
+def run_qlearning(agent: DQN, render: bool = True):
     env = gym.make("CartPole-v1")
     draw = env.render if render else lambda: ...
 
@@ -63,7 +63,7 @@ def main():
         verbose=True
     )
 
-    test_qlearning(agent, render=True)
+    run_qlearning(agent, render=True)
 
 
 if __name__ == '__main__':

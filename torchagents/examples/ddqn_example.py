@@ -1,5 +1,5 @@
 """
-Testing the Double DQN agent on cart pole.
+Running the Double DQN agent on cart pole.
 """
 
 # Standard libraries
@@ -19,7 +19,7 @@ from ddqn import DDQN
 logging.basicConfig(level=logging.INFO)
 
 
-def test_ddqn(agent: DDQN, render: bool = True):
+def run_ddqn(agent: DDQN, render: bool = True):
     env = gym.make("CartPole-v1")
     draw = env.render if render else lambda: ...
 
@@ -63,7 +63,7 @@ def main():
         verbose=True
     )
 
-    test_ddqn(agent, render=True)
+    run_ddqn(agent, render=True)
 
 
 if __name__ == '__main__':
