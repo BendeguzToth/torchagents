@@ -25,7 +25,7 @@ from agent import Agent, Action
 Scheduler = TypeVar("Scheduler")
 
 
-class DeepQAgent(Agent):
+class DQN(Agent):
     """
     Simple deep Q-learning with experience replays
     and with frozen target network.
@@ -34,7 +34,6 @@ class DeepQAgent(Agent):
             self,
             value_function: Module,
             optimizer:      Optimizer,
-            lr_scheduler:   Optional[Scheduler],
             gamma:          float,
             epsilon_fn:     Callable[[int], float],
             replay_buffer_size: int,
@@ -42,6 +41,7 @@ class DeepQAgent(Agent):
             start_training_at:  int,
             unfreeze_freq:      int,
             device:             torch.device,
+            lr_scheduler:       Optional[Scheduler] = None,
             verbose:            bool = False,
             floating_dtype:     torch.dtype = torch.float32
     ):
@@ -75,7 +75,7 @@ class DeepQAgent(Agent):
         :param floating_dtype: Floating point datatype used in the agent. Should match
         with what the value_function expects.
         """
-        super(DeepQAgent, self).__init__(tensor_specs={"device": device, "dtype": floating_dtype})
+        super(DQN, self).__init__(tensor_specs={"device": device, "dtype": floating_dtype})
         self.gamma = gamma
         self.epsilon_fn = epsilon_fn
 
@@ -213,7 +213,9 @@ class DeepQAgent(Agent):
         with torch.no_grad():
             y = self.action_value_function(x)
         a = torch.max(y, dim=1)[1].item()
-        return a if random.uniform(0, 1) > epsilon / 2 else random.sample(range(len(y)), 1)[0]
+        chance = range(len(y))
+        a = a if random.uniform(0, 1) > epsilon else random.sample(range(len(y)+1), 1)[0]
+        return a
 
     def save(self, path: str) -> None:
         torch.save({
