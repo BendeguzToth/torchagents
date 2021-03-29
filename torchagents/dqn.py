@@ -213,7 +213,6 @@ class DQN(Agent):
         with torch.no_grad():
             y = self.action_value_function(x)
         a = torch.max(y, dim=1)[1].item()
-        chance = range(len(y))
         a = a if random.uniform(0, 1) > epsilon else random.sample(range(len(y)+1), 1)[0]
         return a
 
