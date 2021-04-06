@@ -3,7 +3,7 @@ Implementation of deep Q-learning.
 """
 
 # Standard libraries
-from typing import Optional, TypeVar, Callable
+from typing import Optional, Callable
 from collections import deque
 import copy
 import random
@@ -17,12 +17,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import Optimizer
 
 # Project files
-from agent import Agent, Action
-
-
-# Sadly the true base class torch.optim.lr_scheduler._LRScheduler
-# is private so we can't use that in annotations.
-Scheduler = TypeVar("Scheduler")
+from agent import Agent, Scheduler
 
 
 class DQN(Agent):
@@ -60,8 +55,6 @@ class DQN(Agent):
         is the chance that a suboptimal action will be chosen in order
         to promote better exploration during training. The returned value
         needs to be in the interval [0, 1].
-        Either torch.device("cpu") or torch.device("cuda:n")
-        where n is a number, most commonly 0 in case of single GPU training.
         :param replay_buffer_size: Size of the replay buffer.
         :param replay_batch_size: Batch size used when training from the replay
         buffer.
@@ -109,22 +102,22 @@ class DQN(Agent):
         self.ret = 0
         self.verbose = verbose
 
-    def __call__(self, state: np.ndarray, epsilon: float = 0) -> Action:
+    def __call__(self, state: np.ndarray, epsilon: float = 0) -> int:
         """
         Call this function during inference.
         :param state: The state of the world, numpy array without the batch dimension.
         :param epsilon: Chance of sub-optimal action selection.
-        :return: The action chosen.
+        :return: The index of the action chosen.
         """
         return self.sample_action(state, epsilon)
 
-    def train_step(self, state: np.ndarray, reward: float, episode_ended: bool) -> Action:
+    def train_step(self, state: np.ndarray, reward: float, episode_ended: bool) -> int:
         """
         Gets called during training, takes action based on world state.
         :param state: The state of the world, numpy array without the batch dimension.
         :param reward: Float scalar reward signal.
-        :param episode_ended: True when player died, False otherwise.
-        :return: An action, either 0 (do nothing) or 1 (jump).
+        :param episode_ended: True if episode ended, False otherwise.
+        :return: Index of action to take.
         """
         if not episode_ended:
             # Sample an action for the current state.
@@ -152,7 +145,10 @@ class DQN(Agent):
             self.replay()
             return 0
 
-    def replay(self):
+    def replay(self) -> None:
+        """
+        Performs a single update on a mini batch sampled from the experience replay.
+        """
         # If the replay buffer does not contain the minimal amount
         # of experience required for training skip training.
         if len(self.replay_buffer) < self.start_training_at or len(self.replay_buffer) < self.replay_batch_size:
@@ -198,7 +194,7 @@ class DQN(Agent):
             self.scheduler.step()
         self.action_value_function.train(False)
 
-    def sample_action(self, state: np.ndarray, epsilon: float) -> Action:
+    def sample_action(self, state: np.ndarray, epsilon: float) -> int:
         """
         Samples an action according to epsilon greedy policy for the
         given state. No gradient is being recorded, don't use it when
@@ -221,7 +217,7 @@ class DQN(Agent):
             "q": self.action_value_function.state_dict(),
             "tgt": self.target_network.state_dict(),
             "optim": self.optimizer.state_dict(),
-            "scheduler": self.scheduler.state_dict(),
+            "scheduler": self.scheduler.state_dict() if self.scheduler is not None else None,
             "acting_steps": self.acting_steps,
             "training_steps": self.training_steps
         }, path)
@@ -231,6 +227,7 @@ class DQN(Agent):
         self.action_value_function.load_state_dict(ckpt["q"])
         self.target_network.load_state_dict(ckpt["tgt"])
         self.optimizer.load_state_dict(ckpt["optim"])
-        self.scheduler.load_state_dict(ckpt["scheduler"])
+        if self.scheduler is not None:
+            self.scheduler.load_state_dict(ckpt["scheduler"])
         self.acting_steps = ckpt["acting_steps"]
         self.training_steps = ckpt["training_steps"]

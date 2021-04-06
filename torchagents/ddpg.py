@@ -3,7 +3,7 @@ Implementation of Deep Deterministic Policy Gradient.
 """
 
 # Standard libraries
-from typing import Optional, TypeVar, Callable
+from typing import Optional, Callable
 from collections import deque
 import copy
 import random
@@ -17,12 +17,7 @@ from torch.nn.functional import mse_loss
 from torch.optim import Optimizer
 
 # Project files
-from agent import Agent, Action
-
-
-# Sadly the true base class torch.optim.lr_scheduler._LRScheduler
-# is private so we can't use that in annotations.
-Scheduler = TypeVar("Scheduler")
+from agent import Agent, Action, Scheduler
 
 
 class DDPG(Agent):
@@ -41,7 +36,7 @@ class DDPG(Agent):
             optimizer_value_net:    Optimizer,
             optimizer_policy_net:   Optimizer,
             lr_scheduler_value_net: Optional[Scheduler],
-            lr_scheduler_policy_net:Optional[Scheduler],
+            lr_scheduler_policy_net: Optional[Scheduler],
             gamma:          float,
             polyak:         float,
             noise_std_f:    Callable[[int], float],
@@ -61,7 +56,7 @@ class DDPG(Agent):
         :param value_net: Torch module, takes input of shape (B, S+A) where
         B is the batch dimensions, S is the size of the state vector and A is the
         size of the action vector. Returns a tensor of shape (B, 1), the value
-        of the action(s) in the state.
+        of the action in the state.
         :param policy_net: Torch module, takes input of shape (B, S) where
         B is the batch dimensions, S is the size of the state vector. Returns
         a tensor of (B, A) where A is the number of actions.
@@ -71,7 +66,7 @@ class DDPG(Agent):
         :param lr_scheduler_policy_net: [Optional] Learning rate scheduler. Can be None.
         :param gamma: Reward discount rate. [0, 1]
         :param polyak: Weights for smooth target update. It is the ratio of old target
-        weights (should be close to 1).
+        weights (should be close to 1). Also known as tau in other implementations.
         :param noise_std_f: A function that returns the standard deviation of the added noise
         during training based on the training step as parameter.
         :param min_action: Lower bound of valid action range. Output of the policy net will
@@ -139,7 +134,7 @@ class DDPG(Agent):
     def __call__(self, state: np.ndarray, epsilon: float = 0) -> Action:
         """
         Call this function during inference.
-        :param state: The state of the world, numpy array without the batch dimension.
+        :param state: The state of the world, numpy array without the batch dimension. (F,)
         :param epsilon: Standard deviation of added noise.
         :return: The action.
         """
@@ -148,7 +143,7 @@ class DDPG(Agent):
     def train_step(self, state: np.ndarray, reward: float, episode_ended: bool) -> Action:
         """
         Gets called during training, takes action based on world state.
-        :param state: The state of the world, numpy array without the batch dimension.
+        :param state: The state of the world, numpy array without the batch dimension. (F,)
         :param reward: Float scalar reward signal.
         :param episode_ended: Indicates whether this is the last state in the episode.
         :return: Action to take.
@@ -264,19 +259,27 @@ class DDPG(Agent):
 
     def save(self, path: str) -> None:
         torch.save({
-            "q": self.value_net.state_dict(),
-            "tgt": self.target_network.state_dict(),
-            "optim": self.optimizer_value_net.state_dict(),
-            "scheduler": self.scheduler.state_dict(),
-            "acting_steps": self.acting_steps,
-            "training_steps": self.training_steps
+            "value_net": self.value_net.state_dict(),
+            "policy_net": self.policy_net.state_dict(),
+            "target_value_net": self.target_value_net.state_dict(),
+            "target_policy_net": self.target_policy_net.state_dict(),
+            "optimizer_value_net": self.optimizer_value_net.state_dict(),
+            "optimizer_policy_net": self.optimizer_policy_net.state_dict(),
+            "scheduler_value_net": self.scheduler_value_net.state_dict() if self.scheduler_value_net is not None else None,
+            "scheduler_policy_net": self.scheduler_policy_net.state_dict() if self.scheduler_policy_net is not None else None,
+            "steps": self.acting_steps
         }, path)
 
     def load(self, path: str) -> None:
         ckpt = torch.load(path)
-        self.value_net.load_state_dict(ckpt["q"])
-        self.target_network.load_state_dict(ckpt["tgt"])
-        self.optimizer_value_net.load_state_dict(ckpt["optim"])
-        self.scheduler.load_state_dict(ckpt["scheduler"])
-        self.acting_steps = ckpt["acting_steps"]
-        self.training_steps = ckpt["training_steps"]
+        self.value_net.load_state_dict(ckpt["value_net"])
+        self.policy_net.load_state_dict(ckpt["policy_net"])
+        self.target_value_net.load_state_dict(ckpt["target_value_net"])
+        self.target_policy_net.load_state_dict(ckpt["target_policy_net"])
+        self.optimizer_value_net.load_state_dict(ckpt["optimizer_value_net"])
+        self.optimizer_policy_net.load_state_dict(ckpt["optimizer_policy_net"])
+        if self.scheduler_value_net is not None:
+            self.scheduler_value_net.load_state_dict(ckpt["scheduler_value_net"])
+        if self.scheduler_policy_net is not None:
+            self.scheduler_policy_net.load_state_dict(ckpt["scheduler_policy_net"])
+        self.acting_steps = ckpt["steps"]

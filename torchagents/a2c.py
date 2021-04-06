@@ -3,7 +3,7 @@ Advantage Actor-Critic
 """
 
 # Standard libraries
-from typing import TypeVar, Optional
+from typing import Optional
 import logging
 
 # Third-party dependencies
@@ -14,12 +14,7 @@ from torch.nn.functional import softmax
 from torch.optim import Optimizer
 
 # Project files
-from agent import Agent, Action
-
-
-# Sadly the true base class torch.optim.lr_scheduler._LRScheduler
-# is private so we can't use that in annotations.
-Scheduler = TypeVar("Scheduler")
+from agent import Agent, Scheduler
 
 
 class A2C(Agent):
@@ -43,11 +38,25 @@ class A2C(Agent):
     ):
         """
         Ctor.
-        :param gamma: Reward discount.
-        :param lambda_value: Eligibility trace decay rate for value net.
-        :param lambda_policy: Eligibility trace decay rate for policy net.
-        :param device: Torch device to put the model on.
-        :param verbose: True for logging progress in console.
+        :param value_net: State value function.
+        :param policy_net: Policy net. Input of shape (B, F) where B is batch, F is state feature
+        vector. Output of shape (B, A) where A is the number of possible actions. Do NOT use softmax
+        at the end, output reals.
+        :param optimizer_value_net: Value net optimizer.
+        :param optimizer_policy_net: Policy net optimizer.
+        :param gamma:
+        :param lambda_value: TD-style lambda to weigh n-step targets. Uses 1-step target if 0,
+        uses mean of all n-step targets if 1.
+        :param lambda_policy: TD-style lambda to weigh n-step targets. Uses 1-step target if 0,
+        uses mean of all n-step targets if 1.
+        :param device: torch.device instance. Either 'torch.device("cuda:n")' where n
+        is an integer, (0 in case of single gpu systems) or 'torch.device("cpu")'.
+        :param lr_scheduler_value_net: [Optional] Learning rate scheduler.
+        :param lr_scheduler_policy_net: [Optional] Learning rate scheduler.
+        :param verbose: Agent will log returns after each episode to default logger
+        if True. No logging if False.
+        :param floating_dtype: Floating point datatype used in the agent. Should match
+        with what the value_function expects.
         """
         super(A2C, self).__init__(tensor_specs={"device": device, "dtype": floating_dtype})
 
@@ -84,14 +93,14 @@ class A2C(Agent):
 
         self.ret = 0
 
-    def __call__(self, state, argmax=True):
+    def __call__(self, state, argmax=True) -> int:
         """
         Inference.
         :param state: State numpy array without batch dimension.
         :param argmax: If True argmax will be used to select action
         from probabilities, otherwise it will be sampled from the output
         distribution.
-        :return: A scalar action.
+        :return: Action index.
         """
         with torch.no_grad():
             action_distribution = softmax(self.policy_net(self.tensor(state[None, ...])), dim=1)
@@ -102,13 +111,13 @@ class A2C(Agent):
                                           p=action_distribution.cpu().numpy()[0])
         return action_idx
 
-    def train_step(self, state: np.ndarray, reward: float, episode_ended: bool) -> Action:
+    def train_step(self, state: np.ndarray, reward: float, episode_ended: bool) -> int:
         """
         Gets called by the environment, takes action based on world state.
-        :param state: The state of the game, numpy array of shape (4,).
+        :param state: The state of the game, numpy array of shape (F,).
         :param reward: Float scalar reward signal.
         :param episode_ended: True when player died, False otherwise.
-        :return: An action, either 0 (do nothing) or 1 (jump).
+        :return: Index of action to take.
         """
         self.value_net.train(True)
         self.policy_net.train(True)
@@ -148,7 +157,8 @@ class A2C(Agent):
 
             # Policy update.
 
-            # Negative because gradient ascent.
+            # Negative because gradient ascent. It is multiplied with the advantage in the function
+            # apply_eligibility_trace_policy(td_error).
             loss_policy = -torch.log(softmax(self.policy_net(self.prev_s), dim=1)[0, self.prev_a])
             loss_policy.backward()
             self.update_eligibility_trace_policy()
@@ -218,7 +228,22 @@ class A2C(Agent):
                 k.grad += self.eligibility_trace_policy[k] * td_error
 
     def save(self, path: str) -> None:
-        raise NotImplementedError()
+        torch.save({
+            "value_net": self.value_net,
+            "policy_net": self.policy_net,
+            "optimizer_value": self.optimizer_value.state_dict(),
+            "optimizer_policy": self.optimizer_policy.state_dict(),
+            "scheduler_value": self.scheduler_value.state_dict() if self.scheduler_value is not None else None,
+            "scheduler_policy": self.scheduler_value.state_dict() if self.scheduler_policy is not None else None
+        }, path)
 
     def load(self, path: str) -> None:
-        raise NotImplementedError()
+        ckpt = torch.load(path)
+        self.value_net.load_state_dict(ckpt["value_net"])
+        self.policy_net.load_state_dict(ckpt["policy_net"])
+        self.optimizer_value.load_state_dict(ckpt["optimizer_value"])
+        self.optimizer_policy.load_state_dict(ckpt["optimizer_policy"])
+        if self.scheduler_value is not None:
+            self.scheduler_value.load_state_dict(ckpt["scheduler_value"])
+        if self.scheduler_policy is not None:
+            self.scheduler_value.load_state_dict(ckpt["scheduler_policy"])

@@ -11,6 +11,9 @@ import torch
 
 # Type definitions
 Action = TypeVar("Action")
+# Need this for type hints, true base
+# class is hidden.
+Scheduler = TypeVar("Scheduler")
 
 
 class Agent(ABC):
