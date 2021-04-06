@@ -28,5 +28,5 @@ Advantage actor-critic with eligibility traces. Value function trains towards λ
 
 ## [ppo] Proximal Policy Optimization
 [[Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)]  
-Implementation of the clipping variant of PPO. Supports weight sharing between policy and value functions. Value function trains towards λ-weighted sum of n-step TD-targets. [generalized advantage estimation](https://arxiv.org/abs/1506.02438) is used, truncated at end of episode or end of batch.  
+Implementation of the clipping variant of PPO. Supports weight sharing between policy and value functions. Value function trains towards λ-weighted sum of n-step TD-targets. [Generalized advantage estimation](https://arxiv.org/abs/1506.02438) is used, truncated at end of episode or end of batch.  
 ![](gifs/ppo.gif)  
