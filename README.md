@@ -8,12 +8,12 @@ Implementations of RL algorithms using PyTorch.
 
 ## [dqn] Deep Q-Learning 
 [[Playing Atari with Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf)]  
-Simple implementation of the deep Q-learning agent with experience replay and a target network that is periodically updated to match the value network.
+Simple implementation of the deep Q-learning agent with experience replay and a target network that is periodically updated to match the value network.  
 ![](gifs/dqn.gif)  
 
 ## [ddqn] Double Deep Q-Learning
 [[Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)]  
-Same as DQN, except the online network is used for action selection.
+Same as DQN, except the online network is used for action selection.  
 ![](gifs/ddqn.gif)  
 
 ## [ddpg] Deep Deterministic Policy Gradient
@@ -28,5 +28,5 @@ Advantage actor-critic with eligibility traces. Value function trains towards λ
 
 ## [ppo] Proximal Policy Optimization
 [[Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)]  
-Implementation of the clipping variant of PPO. Supports weight sharing between policy and value functions. Value function trains towards λ-weighted sum of n-step TD-targets. [generalized advantage estimation](https://arxiv.org/abs/1506.02438) is used, truncated at end of episode or end of batch.
+Implementation of the clipping variant of PPO. Supports weight sharing between policy and value functions. Value function trains towards λ-weighted sum of n-step TD-targets. [generalized advantage estimation](https://arxiv.org/abs/1506.02438) is used, truncated at end of episode or end of batch.  
 ![](gifs/ppo.gif)  
