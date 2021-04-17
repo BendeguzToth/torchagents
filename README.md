@@ -5,6 +5,7 @@ Implementations of RL algorithms using PyTorch.
 * Deep Deterministic Policy Gradient
 * Advantage Actor-Critic
 * Proximal Policy Optimization
+* Twin Delayed Deep Deterministic Policy Gradient
 
 ## [dqn] Deep Q-Learning 
 [[Playing Atari with Deep Reinforcement Learning](https://www.cs.toronto.edu/~vmnih/docs/dqn.pdf)]  
@@ -30,3 +31,9 @@ Advantage actor-critic with eligibility traces. Value function trains towards λ
 [[Proximal Policy Optimization Algorithms](https://arxiv.org/abs/1707.06347)]  
 Implementation of the clipping variant of PPO. Supports weight sharing between policy and value functions. Value function trains towards λ-weighted sum of n-step TD-targets. [Generalized advantage estimation](https://arxiv.org/abs/1506.02438) is used, truncated at end of episode or end of batch.  
 ![](gifs/ppo.gif)  
+
+
+## [td3] Twin Delayed Deep Deterministic Policy Gradient
+[[Addressing Function Approximation Error in Actor-Critic Methods](https://arxiv.org/abs/1802.09477)]  
+As described in the paper.  
+![](gifs/td3_small.gif)  
